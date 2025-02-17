@@ -19,18 +19,14 @@ workflows:
         script: |
           VERSION_NAME=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f1)
           BUILD_NUMBER=$(git rev-list --count HEAD)
+          BUILD_NAME="$VERSION_NAME(d$BUILD_NUMBER)"
 
-          MAJOR=$(echo $VERSION_NAME | cut -d '.' -f1)
-          MINOR=$(echo $VERSION_NAME | cut -d '.' -f2)
-          PATCH=$(echo $VERSION_NAME | cut -d '.' -f3)
+          echo "Version Name: $BUILD_NAME"
+          echo "Version Code: $BUILD_NUMBER"
 
-          VERSION_CODE=$(printf "%02d%02d%02d%03d" $MAJOR $MINOR $PATCH $BUILD_NUMBER)
-
-          echo "Version Name: $VERSION_NAME(d$BUILD_NUMBER)"
-          echo "Version Code: $VERSION_CODE"
-
-          echo "FLUTTER_BUILD_NAME=$VERSION_NAME" >> $CM_ENV
-          echo "FLUTTER_BUILD_NUMBER=$VERSION_CODE" >> $CM_ENV
+          echo "FLUTTER_BUILD_NAME=$BUILD_NAME" >> $CM_ENV
+          echo "FLUTTER_BUILD_NUMBER=$BUILD_NUMBER" >> $CM_ENV
+          
 
       - name: 安裝 Flutter 依賴
         script: |
