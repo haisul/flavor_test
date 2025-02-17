@@ -17,6 +17,7 @@ workflows:
     scripts:
       - name: 設定 Flutter 版本號
         script: |
+          ＃取得 Flutter 版本
           VERSION_NAME=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f1)
           BUILD_NUMBER=$(git rev-list --count HEAD)
           BUILD_NAME="$VERSION_NAME(d$BUILD_NUMBER)"
@@ -31,14 +32,17 @@ workflows:
       - name: 安裝 Flutter 依賴
         script: |
           flutter pub get
-
-      - name: 構建 Android APK
-        script: |
-          flutter build apk --flavor dev --release
+          cd ios
+          pod install
+          cd ..
 
       - name: 構建 iOS
         script: |
-          flutter build ios --flavor dev --release
+          flutter build ios --release --no-codesign --flavor dev
+      
+      - name: 構建 Android APK
+        script: |
+          flutter build apk --flavor dev --release
 
     artifacts:
       - build/**/outputs/**/*.apk

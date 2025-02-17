@@ -335,6 +335,91 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		18B240222D6302910010440A /* Debug-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = Runner;
+			};
+			name = "Debug-dev";
+		};
+		18B240232D6302910010440A /* Profile-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = Runner;
+			};
+			name = "Profile-dev";
+		};
+		18B240242D6302910010440A /* Release-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = 7D6898U2H9;
+				PRODUCT_NAME = Runner;
+			};
+			name = "Release-dev";
+		};
+		18B240252D6302910010440A /* Debug-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = Runner;
+			};
+			name = "Debug-prod";
+		};
+		18B240262D6302910010440A /* Profile-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = Runner;
+			};
+			name = "Profile-prod";
+		};
+		18B240272D6302910010440A /* Release-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = Runner;
+			};
+			name = "Release-prod";
+		};
+		18B240282D6302910010440A /* Debug-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Debug-dev";
+		};
+		18B240292D6302910010440A /* Profile-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Profile-dev";
+		};
+		18B2402A2D6302910010440A /* Release-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Release-dev";
+		};
+		18B2402B2D6302910010440A /* Debug-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Debug-prod";
+		};
+		18B2402C2D6302910010440A /* Profile-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Profile-prod";
+		};
+		18B2402D2D6302910010440A /* Release-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = RunnerTests;
+			};
+			name = "Release-prod";
+		};
 		248710D91C54456705EB14B9 /* Profile-dev */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 9A4A9EAD95C596C18172F779 /* devProfile.xcconfig */;
@@ -1055,6 +1140,12 @@
 				331C8088294A63A400263BE5 /* Debug */,
 				331C8089294A63A400263BE5 /* Release */,
 				331C808A294A63A400263BE5 /* Profile */,
+				18B240282D6302910010440A /* Debug-dev */,
+				18B240292D6302910010440A /* Profile-dev */,
+				18B2402A2D6302910010440A /* Release-dev */,
+				18B2402B2D6302910010440A /* Debug-prod */,
+				18B2402C2D6302910010440A /* Profile-prod */,
+				18B2402D2D6302910010440A /* Release-prod */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1081,6 +1172,12 @@
 				97C147061CF9000F007C117D /* Debug */,
 				97C147071CF9000F007C117D /* Release */,
 				249021D4217E4FDB00AE95B9 /* Profile */,
+				18B240222D6302910010440A /* Debug-dev */,
+				18B240232D6302910010440A /* Profile-dev */,
+				18B240242D6302910010440A /* Release-dev */,
+				18B240252D6302910010440A /* Debug-prod */,
+				18B240262D6302910010440A /* Profile-prod */,
+				18B240272D6302910010440A /* Release-prod */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
