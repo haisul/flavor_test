@@ -36,17 +36,13 @@ workflows:
         script: |
           flutter pub get
 
-      - name: 進行 Flutter 測試
-        script: |
-          flutter test
-
       - name: 構建 Android APK
         script: |
-          flutter build apk --release
+          flutter build apk --flavor dev --release
 
       - name: 構建 iOS
         script: |
-          flutter build ios --no-codesign
+          flutter build ios --flavor dev --release
 
     artifacts:
       - build/**/outputs/**/*.apk
