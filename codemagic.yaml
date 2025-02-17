@@ -21,10 +21,11 @@ workflows:
           VERSION_NAME=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f1)
           BUILD_NUMBER=$(git rev-list --count HEAD)
           DEV_NUMBER="d$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f2)"
-          BUILD_NAME="$VERSION_NAME$DEV_NUMBER"
+          BUILD_NAME="$VERSION_NAME($DEV_NUMBER)"
 
           echo "Version Name: $BUILD_NAME"
           echo "Version Code: $BUILD_NUMBER"
+          echo "Dev Number: $DEV_NUMBER"
 
           echo "FLUTTER_BUILD_NAME=$BUILD_NAME" >> $CM_ENV
           echo "FLUTTER_BUILD_NUMBER=$BUILD_NUMBER" >> $CM_ENV
@@ -47,5 +48,5 @@ workflows:
           flutter build apk --flavor dev --release
 
     artifacts:
-      - build/**/outputs/**/*.apk
+      - build/app/outputs/flutter-apk/*release.apk
       - build/ios/iphoneos/*.app
