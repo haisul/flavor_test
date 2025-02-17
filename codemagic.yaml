@@ -7,6 +7,8 @@ workflows:
       flutter: "3.27.1"
       xcode: "16.2"
       cocoapods: "1.15.2"
+      groups:
+        - firebase
     triggering:
       events:
         - push
@@ -14,23 +16,115 @@ workflows:
         - pattern: main
           include: true
           source: true
+
     scripts:
+      - name: 取得 Remote Config
+        script: |
+          set -e
+          echo $FIREBASE_SERVICE_ACCOUNT > $CM_BUILD_DIR/firebase_key.json
+
+          npm install firebase-admin
+
+          REMOTE_CONFIG_VALUES=$(node << 'EOF'
+          const admin = require('firebase-admin');
+          const serviceAccount = require('./firebase_key.json');
+
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+          });
+
+          async function getConfigValues() {
+            const template = await admin.remoteConfig().getTemplate();
+            const values = {
+              lastBuildNumber: template.parameters.lastBuildNumber.defaultValue.value,
+              lastDevNumber: template.parameters.lastDevNumber.defaultValue.value,
+              lastVersion: template.parameters.lastVersion.defaultValue.value
+            };
+            console.log(JSON.stringify(values));
+          }
+
+          getConfigValues().catch(error => {
+            console.error('Unhandled error:', error);
+            process.exit(1);
+          });
+          EOF
+          )
+
+          LAST_BUILD_NUMBER=$(echo $REMOTE_CONFIG_VALUES | jq -r '.lastBuildNumber')
+          LAST_DEV_NUMBER=$(echo $REMOTE_CONFIG_VALUES | jq -r '.lastDevNumber')
+          LAST_VERSION=$(echo $REMOTE_CONFIG_VALUES | jq -r '.lastVersion')
+
+          echo "LAST_BUILD_NUMBER=$LAST_BUILD_NUMBER" >> $CM_ENV
+          echo "LAST_DEV_NUMBER=$LAST_DEV_NUMBER" >> $CM_ENV
+          echo "LAST_VERSION=$LAST_VERSION" >> $CM_ENV
+
+          echo "Last Build Number: $LAST_BUILD_NUMBER"
+          echo "Last Dev Number: $LAST_DEV_NUMBER"
+          echo "Last Version: $LAST_VERSION"
+
       - name: 設定 Flutter 版本號
         script: |
-          ＃取得 Flutter 版本
-          VERSION_NAME=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f1)
-          BUILD_NUMBER=$(git rev-list --count HEAD)
-          DEV_NUMBER="d$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f2)"
-          BUILD_NAME="$VERSION_NAME($DEV_NUMBER)"
+          CURRENT_VERSION=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f1)
+          IFS='.' read -ra CURRENT_VER <<< "$CURRENT_VERSION"
+          IFS='.' read -ra LAST_VER <<< "$LAST_VERSION"
 
-          echo "Version Name: $BUILD_NAME"
-          echo "Version Code: $BUILD_NUMBER"
-          echo "Dev Number: $DEV_NUMBER"
+          if [ "${CURRENT_VER[0]}" -gt "${LAST_VER[0]}" ] || 
+            [ "${CURRENT_VER[0]}" -eq "${LAST_VER[0]}" -a "${CURRENT_VER[1]}" -gt "${LAST_VER[1]}" ] || 
+            [ "${CURRENT_VER[0]}" -eq "${LAST_VER[0]}" -a "${CURRENT_VER[1]}" -eq "${LAST_VER[1]}" -a "${CURRENT_VER[2]}" -gt "${LAST_VER[2]}" ]; then
+              LAST_VERSION=$CURRENT_VERSION
+              LAST_DEV_NUMBER=1
+          elif [ "$CURRENT_VERSION" = "$LAST_VERSION" ]; then
+              LAST_DEV_NUMBER=$((LAST_DEV_NUMBER+1))
+          else
+              echo "Error: Current version ($CURRENT_VERSION) is lower than last version ($LAST_VERSION)"
+              exit 1
+          fi
 
-          echo "FLUTTER_BUILD_NAME=$BUILD_NAME" >> $CM_ENV
-          echo "FLUTTER_BUILD_NUMBER=$BUILD_NUMBER" >> $CM_ENV
-          echo "FLUTTER_DEV_NUMBER=$DEV_NUMBER" >> $CM_ENV
+          LAST_BUILD_NUMBER=$((LAST_BUILD_NUMBER + 1))
           
+          echo "FLUTTER_BUILD_NUMBER=$LAST_BUILD_NUMBER" >> $CM_ENV
+          echo "FLUTTER_DEV_NUMBER=d$LAST_DEV_NUMBER" >> $CM_ENV
+          echo "FLUTTER_BUILD_NAME=$LAST_VERSION(d$LAST_DEV_NUMBER)" >> $CM_ENV
+
+          echo "LAST_BUILD_NUMBER=$LAST_BUILD_NUMBER" >> $CM_ENV
+          echo "LAST_DEV_NUMBER=$LAST_DEV_NUMBER" >> $CM_ENV
+          echo "LAST_VERSION=$LAST_VERSION" >> $CM_ENV
+
+          echo "Build Number: $LAST_BUILD_NUMBER"
+          echo "Dev Number: d$LAST_DEV_NUMBER"
+          echo "Version: $LAST_VERSION(d$LAST_DEV_NUMBER)"
+          
+      - name: 更新 Remote Config
+        script: |
+          node << EOF
+          const admin = require('firebase-admin');
+          const serviceAccount = require('./firebase_key.json');
+
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+          });
+
+          async function updateConfig() {
+            try {
+              const template = await admin.remoteConfig().getTemplate();
+              template.parameters.lastVersion.defaultValue.value = '$LAST_VERSION';
+              template.parameters.lastBuildNumber.defaultValue.value = '$LAST_BUILD_NUMBER';
+              template.parameters.lastDevNumber.defaultValue.value = '$LAST_DEV_NUMBER';
+              
+              await admin.remoteConfig().publishTemplate(template);
+              console.log('Remote Config updated successfully');
+            } catch (error) {
+              console.error('Error updating Remote Config:', error);
+              process.exit(1);
+            }
+          }
+
+          updateConfig();
+          EOF
+
+          echo "New Build Number: $LAST_BUILD_NUMBER"
+          echo "New Dev Number: $LAST_DEV_NUMBER"
+          echo "New Version: $LAST_VERSION"
 
       - name: 安裝 Flutter 依賴
         script: |
