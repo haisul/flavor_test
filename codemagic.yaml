@@ -132,15 +132,30 @@ workflows:
           cd ios
           pod install
           cd ..
-
-      - name: 構建 iOS
-        script: |
-          flutter build ios --release --no-codesign --flavor dev
       
       - name: 構建 Android APK
         script: |
-          flutter build apk --flavor dev --release
+          flutter build apk --flavor dev --release --build-name=$FLUTTER_BUILD_NAME --build-number=$FLUTTER_BUILD_NUMBER
+
+      - name: 構建 iOS
+        script: |
+          flutter build ios --release --no-codesign --flavor dev --build-name=$FLUTTER_BUILD_NAME --build-number=$FLUTTER_BUILD_NUMBER
+      
 
     artifacts:
       - build/app/outputs/flutter-apk/*release.apk
       - build/ios/iphoneos/*.app
+
+    publishing:
+      firebase:
+        firebase_service_account: $FIREBASE_SERVICE_ACCOUNT
+      
+        android:
+          app_id: 1:491442264269:android:df32653d1d4f8f9042f184
+          groups: 
+            - QATest
+
+        ios:
+          app_id: 1:491442264269:ios:062e09c0fb99a9bf42f184
+          groups:
+            - QATest
