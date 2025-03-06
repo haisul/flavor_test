@@ -1,38 +1,56 @@
 workflows:
   flutter-app:
+    # workflow的名稱
     name: Flutter App CI/CD
+
+    # 執行環境
     instance_type: mac_mini_m2
+
+    # 最大執行時間
     max_build_duration: 60
+
+    # 環境版本設定
     environment:
       flutter: "3.27.1"
       xcode: "16.2"
       cocoapods: "1.15.2"
+      
+      # 簽署文件儲存在Teams 中的Code signing identities
+      # 官方教學 https://docs.codemagic.io/yaml-code-signing/signing-ios/
       android_signing:
-        - CaCaTaxi
+        - keystore_reference 
       ios_signing:
-        distribution_type: development
         provisioning_profiles:
-          - CaCaTaxi
+          - profile_reference
         certificates:
-          - CaCaTaxi
+          - certificate_reference
+      
+      # 環境變數的群組
       groups:
         - firebase
     triggering:
       events:
-        - push
+        - push # 觸發此workflow的事件
       branch_patterns:
-        - pattern: main
-          include: true
-          source: true
+        - pattern: main # 指定的分支名稱
+          include: true # 是否執行此分支
+          source: true # 來源分支merge時是否執行
 
+    # workflow的步驟
     scripts:
+      # 執行Firebase CLI
+      # 從Remote Config中取得環境變數
       - name: 取得 Remote Config
-        script: |
+        script: | 
           set -e
+
+          # 從coddemagic中取得自行設定的環境變數後,存入CM_BUILD_DIR
           echo $FIREBASE_SERVICE_ACCOUNT > $CM_BUILD_DIR/firebase_key.json
 
+          # 安裝firebase CLI
           npm install firebase-admin
 
+          # 取得Remote Config
           REMOTE_CONFIG_VALUES=$(node << 'EOF'
           const admin = require('firebase-admin');
           const serviceAccount = require('./firebase_key.json');
@@ -57,7 +75,8 @@ workflows:
           });
           EOF
           )
-
+          
+          # 將取得的環境變數存入CM_ENV
           LAST_BUILD_NUMBER=$(echo $REMOTE_CONFIG_VALUES | jq -r '.lastBuildNumber')
           LAST_DEV_NUMBER=$(echo $REMOTE_CONFIG_VALUES | jq -r '.lastDevNumber')
           LAST_VERSION=$(echo $REMOTE_CONFIG_VALUES | jq -r '.lastVersion')
@@ -66,28 +85,43 @@ workflows:
           echo "LAST_DEV_NUMBER=$LAST_DEV_NUMBER" >> $CM_ENV
           echo "LAST_VERSION=$LAST_VERSION" >> $CM_ENV
 
+          source $CM_ENV
+
           echo "Last Build Number: $LAST_BUILD_NUMBER"
           echo "Last Dev Number: $LAST_DEV_NUMBER"
           echo "Last Version: $LAST_VERSION"
 
+      # 比較Remote Config與pubspec.yaml中的版本號
+      # 如版號更新,更新最新版號,LAST_DEV_NUMBER歸1
+      # 如版號相同,更新LAST_DEV_NUMBER
+      # 否則,錯誤
       - name: 設定 Flutter 版本號
         script: |
+          #取得pubspec.yaml中的版本號
           CURRENT_VERSION=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f1)
           IFS='.' read -ra CURRENT_VER <<< "$CURRENT_VERSION"
           IFS='.' read -ra LAST_VER <<< "$LAST_VERSION"
 
+          # 比較版本號
           if [ "${CURRENT_VER[0]}" -gt "${LAST_VER[0]}" ] || 
             [ "${CURRENT_VER[0]}" -eq "${LAST_VER[0]}" -a "${CURRENT_VER[1]}" -gt "${LAST_VER[1]}" ] || 
             [ "${CURRENT_VER[0]}" -eq "${LAST_VER[0]}" -a "${CURRENT_VER[1]}" -eq "${LAST_VER[1]}" -a "${CURRENT_VER[2]}" -gt "${LAST_VER[2]}" ]; then
+              
               LAST_VERSION=$CURRENT_VERSION
               LAST_DEV_NUMBER=1
+
           elif [ "$CURRENT_VERSION" = "$LAST_VERSION" ]; then
+
               LAST_DEV_NUMBER=$((LAST_DEV_NUMBER+1))
+
           else
+
               echo "Error: Current version ($CURRENT_VERSION) is lower than last version ($LAST_VERSION)"
               exit 1
+
           fi
 
+          # 更新環境變數
           LAST_BUILD_NUMBER=$((LAST_BUILD_NUMBER + 1))
           
           echo "FLUTTER_BUILD_NUMBER=$LAST_BUILD_NUMBER" >> $CM_ENV
@@ -98,16 +132,21 @@ workflows:
           echo "LAST_DEV_NUMBER=$LAST_DEV_NUMBER" >> $CM_ENV
           echo "LAST_VERSION=$LAST_VERSION" >> $CM_ENV
 
+          source $CM_ENV
+
           echo "Build Number: $LAST_BUILD_NUMBER"
           echo "Dev Number: d$LAST_DEV_NUMBER"
           echo "Version: $LAST_VERSION(d$LAST_DEV_NUMBER)"
-          
+      
+      # 再次執行Firebase CLI
+      # 將更新過的VersionCode 存回Remote Config
       - name: 更新 Remote Config
         script: |
           node << EOF
           const admin = require('firebase-admin');
           const serviceAccount = require('./firebase_key.json');
 
+          # 新版本號上傳至Firebase Remote Config
           admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
           });
@@ -140,32 +179,29 @@ workflows:
           cd ios
           pod install
           cd ..
-
-      - name: Set up code signing settings on Xcode project  
-        script: |
-          xcode-project use-profiles --custom-export-options='{"testFlightInternalTestingOnly": true}' 
-
       
+      # 此二處FLUTTER_BUILD_NAME與FLUTTER_BUILD_NUMBER為 script中設定的環境變數
       - name: 構建 Android APK
         script: |
           flutter build apk --release --flavor dev --build-name=$FLUTTER_BUILD_NAME --build-number=$FLUTTER_BUILD_NUMBER
 
       - name: 構建 iOS
         script: |
-          flutter build ipa --release --flavor dev --build-name=$FLUTTER_BUILD_NAME --build-number=$FLUTTER_BUILD_NUMBER
+          flutter build ios --release --flavor dev --build-name=$FLUTTER_BUILD_NAME --build-number=$FLUTTER_BUILD_NUMBER
       
-
+    # 發佈檔案類型
     artifacts:
       - build/app/outputs/flutter-apk/*release.apk
       - build/ios/ipa/*.ipa
 
+    # 將構建的檔案上傳至Firebase Distribution
     publishing:
       firebase:
-        firebase_service_account: $FIREBASE_SERVICE_ACCOUNT
+        firebase_service_account: $FIREBASE_SERVICE_ACCOUNT # Firebase憑證
       
         android:
-          app_id: 1:491442264269:android:df32653d1d4f8f9042f184
-          groups: 
+          app_id: 1:491442264269:android:df32653d1d4f8f9042f184 # Firebase取得
+          groups: # 測試群組(Firebase上設定)
             - QATest
 
         ios:

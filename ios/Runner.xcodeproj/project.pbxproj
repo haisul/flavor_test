@@ -147,7 +147,6 @@
 				CB452D9046239280392FFDE1 /* Pods-RunnerTests.profile-prod.xcconfig */,
 				EBEA48A48C6BB36339901EB7 /* Pods-RunnerTests.release-prod.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -492,7 +491,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 3B0E14B5833A0F7D83656E7C /* Pods-Runner.release-dev.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = 7D6898U2H9;
+				DEVELOPMENT_TEAM = 5352GWCV9M;
+				PRODUCT_BUNDLE_IDENTIFIER = com.myan.chi.dev;
 				PRODUCT_NAME = Runner;
 			};
 			name = "Release-dev";
